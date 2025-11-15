@@ -1,0 +1,65 @@
+---
+- name: Update APT packages
+  apt:
+    update_cache: yes
+
+- name: Install required packages
+  apt:
+    name:
+      - curl
+      - wget
+      - apt-transport-https
+      - docker.io
+    state: present
+
+- name: Enable and start Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Add current user to docker group
+  user:
+    name: "{{ lookup('env', 'USER') }}"
+    groups: docker
+    append: yes
+
+- name: Notify about docker group membership
+  debug:
+    msg: |
+      Docker group membership updated.
+      Please log out and log back in (or run 'newgrp docker') for changes to take effect
+      before running 'minikube start'.
+
+- name: Download Minikube binary
+  get_url:
+    url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    dest: /usr/local/bin/minikube
+    mode: '0755'
+
+- name: Get latest stable kubectl version with retries
+  shell: curl --retry 5 --retry-delay 3 -sL https://dl.k8s.io/release/stable.txt
+  register: kubectl_version
+  changed_when: false
+
+- name: Validate kubectl version string
+  fail:
+    msg: "❌ Invalid kubectl version string received: {{ kubectl_version.stdout }}"
+  when: kubectl_version.stdout is not match("^v[0-9]+\\.[0-9]+\\.[0-9]+$")
+
+- name: Download and install kubectl
+  get_url:
+    url: "https://dl.k8s.io/release/{{ kubectl_version.stdout }}/bin/linux/amd64/kubectl"
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+
+- name: Show instruction for manual Minikube start
+  debug:
+    msg: |
+      ✅ Setup complete.
+      ❗ Please run the following command manually **after logout/login or running `newgrp docker`**:
+
+      minikube start --driver=docker
+
+      Then check status with:
+      minikube status
