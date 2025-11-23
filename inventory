@@ -1,2 +1,2 @@
 [minikube]
-15.206.213.195 ansible_user=ubuntu ansible_ssh_private_key_file=/var/lib/jenkins/.ssh/test-keypair.pem
+15.206.213.195 ansible_user=ubuntu ansible_ssh_private_key_file=/var/lib/jenkins/.ssh/kuberkey.pem
